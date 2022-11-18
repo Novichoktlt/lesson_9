@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.gb.lesson_99.controller.dto.ProductDto;
 import ru.gb.lesson_99.dao.CartDao;
 import ru.gb.lesson_99.dao.ProductDao;
 import ru.gb.lesson_99.entity.Cart;
@@ -17,6 +18,7 @@ import ru.gb.lesson_99.entity.enums.Status;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -32,23 +34,26 @@ public class ProductService {
         return productDao.count();
     }
 
-    public Product save(Product product) {
-        if (product.getId() != null) {
-            Optional<Product> productFromDBOptional = productDao.findById(product.getId());
-            if (productFromDBOptional.isPresent()) {
-                Product productFromDB = productFromDBOptional.get();
-                productFromDB.setTitle(product.getTitle());
-                productFromDB.setAmt(product.getAmt());
-                productFromDB.setCost(product.getCost());
-                productFromDB.setManufactureDate(product.getManufactureDate());
-                productFromDB.setStatus(product.getStatus());
-                return productDao.save(productFromDB);
-            }
+    public ProductDto save(ProductDto productDto) {
+        Product savingProduct;
+        if (productDto.getId() != null) {
+            Optional<Product> productFromDBOptional = productDao.findById(productDto.getId());
+            savingProduct = productFromDBOptional.orElseGet(Product:: new);
+        }else {
+            savingProduct = new Product();
         }
-        return productDao.save(product);
-    }
 
-    public void cartSave(String flag, Long id){
+        savingProduct.setTitle(productDto.getTitle());
+        savingProduct.setAmt(productDto.getAmt());
+        savingProduct.setCost(productDto.getCost());
+        savingProduct.setManufactureDate(productDto.getManufactureDate());
+        savingProduct.setStatus(productDto.getStatus());
+        savingProduct = productDao.save(savingProduct);
+        productDto.setId(savingProduct.getId());
+                return productDto;
+        }
+
+    public Product cartSave(String flag, Long id){
 
         Cart addCart = new Cart();
         
@@ -81,8 +86,8 @@ public class ProductService {
             BigDecimal amt = new BigDecimal(addCart.getAmt());
             addCart.setCost(price.multiply(amt));
         }
-        productDao.save(productC);
         cartDao.save(addCart);
+        return productDao.save(productC);
     }
 
 
